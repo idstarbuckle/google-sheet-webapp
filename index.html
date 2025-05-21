@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ServTracker</title>
+  <style>
+    :root {
+      --bg-color: #f9f9fb;
+      --text-color: #333;
+      --table-bg: #fff;
+      --header-bg: #ecf0f1;
+      --input-bg: #fff;
+      --input-border: #ccc;
+      --button-bg: #3498db;
+      --button-hover: #2980b9;
+    }
+
+    body.dark {
+      --bg-color: #1e1e2f;
+      --text-color: #f0f0f0;
+      --table-bg: #2c2c3e;
+      --header-bg: #3a3a4f;
+      --input-bg: #2c2c3e;
+      --input-border: #555;
+      --button-bg: #5dade2;
+      --button-hover: #3498db;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    h1, h3 {
+      color: var(--text-color);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .form-row input[type="text"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+    }
+
+    button {
+      padding: 8px 16px;
+      background-color: var(--button-bg);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: var(--button-hover);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: var(--table-bg);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--header-bg);
+    }
+
+    td input[type="text"] {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 4px;
+      color: var(--text-color);
+    }
+
+    td input[type="text"]:focus {
+      outline: 1px solid var(--button-bg);
+      background-color: #f0f8ff;
+    }
+
+    .actions button {
+      margin-right: 5px;
+    }
+
+    .toggle-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .toggle-container label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toggle-container">
+      <label>
+        <input type="checkbox" id="darkModeToggle" />
+        🌙 Dark Mode
+      </label>
+    </div>
+
+    <h1>ServTracker</h1>
+
+    <div>
+      <h3>Add New Serve</h3>
+      <div class="form-row" id="newRowInputs"></div>
+      <button onclick="addRow()">Add Serve</button>
+    </div>
+
+    <h3>Serve Data</h3>
+    <table id="sheetTable"></table>
+  </div>
+
+  <script>
+    const API_URL = https://script.google.com/macros/s/AKfycby9pfyVB4P3XlA3ugtMoVKiTNM2d7_74836mNCQrstC3J4UCXF9E_wsMqK82kB1kIY_/exec;
+
+    document.getElementById('darkModeToggle').addEventListener('change', function () {
+      document.body.classList.toggle('dark', this.checked);
+    });
+
+    async function fetchSheetData() {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getRows' }),
+      });
+      const result = await response.json();
+      renderTable(result.data);
+    }
+
+    function renderTable(data) {
+      const table = document.getElementById('sheetTable');
+      table.innerHTML = '';
+
+      const headerRow = document.createElement('tr');
+      data[0].forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      headerRow.innerHTML += '<th>Actions</th>';
+      table.appendChild(headerRow);
+
+      document.getElementById('newRowInputs').innerHTML = '';
+      data[0].forEach(() => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        document.getElementById('newRowInputs').appendChild(input);
+      });
+
+      for (let i = 1; i < data.length; i++) {
+        const row = document.createElement('tr');
+        data[i].forEach((cell, j) => {
+          const td = document.createElement('td');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = cell;
+          input.onchange = () => editRow(i, j, input.value);
+          td.appendChild(input);
+          row.appendChild(td);
+        });
+
+        const actionsTd = document.createElement('td');
+        actionsTd.className = 'actions';
+        const reportBtn = document.createElement('button');
+        reportBtn.textContent = 'Generate Report';
+        reportBtn.onclick = () => generateReport(i);
+        actionsTd.appendChild(reportBtn);
+        row.appendChild(actionsTd);
+
+        table.appendChild(row);
+      }
+    }
+
+    async function addRow() {
+      const inputs = document.querySelectorAll('#newRowInputs input');
+      const rowData = Array.from(inputs).map(input => input.value);
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'addRow', data: rowData }),
+      });
+      fetchSheetData();
+    }
+
+    async function editRow(rowIndex, colIndex, newValue) {
+      const table = document.getElementById('sheetTable');
+      const rowInputs = table.rows[rowIndex + 1].querySelectorAll('input');
+      const rowData = Array.from(rowInputs).map(input => input.value);
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'editRow', rowIndex, data: rowData }),
+      });
+    }
+
+    async function generateReport(rowIndex) {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'generateReport', rowIndex }),
+      });
+      const result = await response.json();
+      alert(result.report);
+    }
+
+    fetchSheetData();
+  </script>
+</body>
+</html>
