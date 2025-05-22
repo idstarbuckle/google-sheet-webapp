@@ -146,93 +146,103 @@
   <script>
     const API_URL = https://script.google.com/macros/s/AKfycby9pfyVB4P3XlA3ugtMoVKiTNM2d7_74836mNCQrstC3J4UCXF9E_wsMqK82kB1kIY_/exec;
 
-    document.getElementById('darkModeToggle').addEventListener('change', function () {
-      document.body.classList.toggle('dark', this.checked);
-    });
 
-    async function fetchSheetData() {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'getRows' }),
-      });
-      const result = await response.json();
-      renderTable(result.data);
-    }
+window.onload = function () {
+      document.getElementById('darkModeToggle').addEventListener('change', function () {
+        document.body.classList.toggle('dark', this.checked);
+      });
 
-    function renderTable(data) {
-      const table = document.getElementById('sheetTable');
-      table.innerHTML = '';
+      document.getElementById('addRowBtn').addEventListener('click', addRow);
 
-      const headerRow = document.createElement('tr');
-      data[0].forEach(header => {
-        const th = document.createElement('th');
-        th.textContent = header;
-        headerRow.appendChild(th);
-      });
-      headerRow.innerHTML += '<th>Actions</th>';
-      table.appendChild(headerRow);
+      fetchSheetData();
+    };
 
-      document.getElementById('newRowInputs').innerHTML = '';
-      data[0].forEach(() => {
-        const input = document.createElement('input');
-        input.type = 'text';
-        document.getElementById('newRowInputs').appendChild(input);
-      });
+    async function fetchSheetData() {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'getRows' }),
+        });
+        const result = await response.json();
+        console.log('Fetched data:', result);
+        renderTable(result.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
 
-      for (let i = 1; i < data.length; i++) {
-        const row = document.createElement('tr');
-        data[i].forEach((cell, j) => {
-          const td = document.createElement('td');
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.value = cell;
-          input.onchange = () => editRow(i, j, input.value);
-          td.appendChild(input);
-          row.appendChild(td);
-        });
+    function renderTable(data) {
+      const table = document.getElementById('sheetTable');
+      table.innerHTML = '';
 
-        const actionsTd = document.createElement('td');
-        actionsTd.className = 'actions';
-        const reportBtn = document.createElement('button');
-        reportBtn.textContent = 'Generate Report';
-        reportBtn.onclick = () => generateReport(i);
-        actionsTd.appendChild(reportBtn);
-        row.appendChild(actionsTd);
+      const headerRow = document.createElement('tr');
+      data[0].forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      headerRow.innerHTML += '<th>Actions</th>';
+      table.appendChild(headerRow);
 
-        table.appendChild(row);
-      }
-    }
+      document.getElementById('newRowInputs').innerHTML = '';
+      data[0].forEach(() => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        document.getElementById('newRowInputs').appendChild(input);
+      });
 
-    async function addRow() {
-      const inputs = document.querySelectorAll('#newRowInputs input');
-      const rowData = Array.from(inputs).map(input => input.value);
-      await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'addRow', data: rowData }),
-      });
-      fetchSheetData();
-    }
+      for (let i = 1; i < data.length; i++) {
+        const row = document.createElement('tr');
+        data[i].forEach((cell, j) => {
+          const td = document.createElement('td');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = cell;
+          input.onchange = () => editRow(i, j, input.value);
+          td.appendChild(input);
+          row.appendChild(td);
+        });
 
-    async function editRow(rowIndex, colIndex, newValue) {
-      const table = document.getElementById('sheetTable');
-      const rowInputs = table.rows[rowIndex + 1].querySelectorAll('input');
-      const rowData = Array.from(rowInputs).map(input => input.value);
-      await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'editRow', rowIndex, data: rowData }),
-      });
-    }
+        const actionsTd = document.createElement('td');
+        actionsTd.className = 'actions';
+        const reportBtn = document.createElement('button');
+        reportBtn.textContent = 'Generate Report';
+        reportBtn.onclick = () => generateReport(i);
+        actionsTd.appendChild(reportBtn);
+        row.appendChild(actionsTd);
 
-    async function generateReport(rowIndex) {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'generateReport', rowIndex }),
-      });
-      const result = await response.json();
-      alert(result.report);
-    }
+        table.appendChild(row);
+      }
+    }
 
-    fetchSheetData();
-  </script>
+    async function addRow() {
+      const inputs = document.querySelectorAll('#newRowInputs input');
+      const rowData = Array.from(inputs).map(input => input.value);
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'addRow', data: rowData }),
+      });
+      fetchSheetData();
+    }
+
+    async function editRow(rowIndex, colIndex, newValue) {
+      const table = document.getElementById('sheetTable');
+      const rowInputs = table.rows[rowIndex + 1].querySelectorAll('input');
+      const rowData = Array.from(rowInputs).map(input => input.value);
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'editRow', rowIndex, data: rowData }),
+      });
+    }
+
+    async function generateReport(rowIndex) {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'generateReport', rowIndex }),
+      });
+      const result = await response.json();
+      alert(result.report);
+    }
+  </script>
 </body>
 </html>
